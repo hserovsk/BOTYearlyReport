@@ -1,6 +1,10 @@
 import time
 import ssl
+import glob as gb
 import smtplib
+import pandas as pd
+import selenium.common.exceptions
+from openpyxl import Workbook
 from dotenv import load_dotenv
 import os
 from selenium.webdriver.common.by import By
@@ -9,7 +13,12 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.action_chains import ActionChains
 
 PATH = "C:\Program Files (x86)\chromedriver.exe"
-browser = webdriver.Chrome(PATH)
+
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_experimental_option("prefs", {
+  "download.default_directory": r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\downloads"
+  })
+browser = webdriver.Chrome(PATH, chrome_options=chrome_options)
 
 def configure():
     load_dotenv()
@@ -36,18 +45,36 @@ def download_monthly_report():
     select_year = Select(dropdown_year)
     select_year.select_by_value("2022")
     select_month = Select(dropdown_month)
-    try:
-        for x in range(1,13):
+    for x in range(1, 13):
+        try:
             select_month.select_by_index(x)
             browser.find_element(By.XPATH, "//button[@id='buttonDownload']").click()
             time.sleep(3)
-    except Exception as e:
-        print("No report found for this vendor/year/month")
+        except Exception as e:
+            try:
+                print(f"{e} try in try except")
+            except:
+                print("except in try except")
+def merge_excel_files():
+    path = r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\downloads"
+    filenames = gb.glob(path + r"\xlsx")
+    outputxlsx = pd.DataFrame()
+
+    for file in filenames:
+        df = pd.concat(pd.read_excel(file, sheet_name=None,), ignore_index=True, sort=False)
+        outputxlsx = outputxlsx.append(df, ignore_index=True)
+    outputxlsx.to_excel(r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\mergedfile.xlsx")
 
 def redirect_to_work_items():
     browser.click_button("xpath://div//button[@class='btn btn-default btn-lg']")
     time.sleep(3)
-
+def clean_folders():
+    downloaded_files = gb.glob(r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\downloads\*")
+    merged_files = gb.glob(r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\*")
+    for fd in downloaded_files:
+        os.remove(fd)
+    for fm in merged_files:
+        os.remove(fm)
 def send_mail():
     smtp_port = 587
     smtp_server = "smtp.gmail.com"
@@ -77,8 +104,8 @@ def minimal_task():
     configure()
     login_to_web_page()
     download_monthly_report()
+    merge_excel_files()
     send_mail()
-
 
 if __name__ == "__main__":
     minimal_task()
