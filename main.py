@@ -4,6 +4,7 @@ import glob as gb
 import smtplib
 import pandas as pd
 import logging
+import pyautogui
 import selenium.common.exceptions
 from openpyxl import Workbook
 from email.mime.multipart import MIMEMultipart
@@ -12,10 +13,15 @@ from dotenv import load_dotenv
 import os
 from selenium.webdriver.common.by import By
 from selenium import webdriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import date
 from pywinauto.application import Application
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import autoit
 
 # Actual Date
 today = date.today()
@@ -39,7 +45,7 @@ chrome_options = webdriver.ChromeOptions()
 chrome_options.add_experimental_option("prefs", {
   "download.default_directory": r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\downloads"
   })
-browser = webdriver.Chrome(PATH, chrome_options=chrome_options)
+browser = webdriver.Chrome(PATH, options=chrome_options)
 
 def configure():
     logger.info("###################### SCRAPER STARTING EXECUTION ######################")
@@ -114,6 +120,41 @@ def clean_folders():
         os.remove(fm)
     logger.info("Deleting files in folders... Success")
 
+def uploading_merged_file_test():
+    browser.get("https://acme-test.uipath.com")
+    achains = ActionChains(browser)
+    hover_element = browser.find_element(By.XPATH, "//button[normalize-space()='Reports']")
+    achains.move_to_element(hover_element).perform()
+    browser.find_element(By.XPATH, "//a[normalize-space()='Upload Yearly Report']").click()
+    browser.find_element(By.XPATH, "//input[@id='vendorTaxID']").send_keys("IT754893")
+    dropdown_year = browser.find_element(By.XPATH, "//select[@name='reportYear']")
+    select_year = Select(dropdown_year)
+    select_year.select_by_value("2022")
+    time.sleep(4)
+    browser.find_element(By.XPATH, "//label[@for='my-file-selector']").click()
+    time.sleep(1)
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    autoit.win_active("Open")
+    autoit.control_send("Open", "Edit1", r"C:\Users\uu\Desktop\TestUpload.txt")
+    autoit.control_send("Open", "Edit1", "{ENTER}")
+
+
+    #element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, "//label[@for='my-file-selector']")))
+
+    #browser.find_element(By.XPATH, "//label[@for='my-file-selector']").click()
+    #pyautogui.write(r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\file.txt")
+    #pyautogui.press('enter')
+
+    #browser.find_element(By.XPATH, "//label[@for='my-file-selector']").send_keys(r"C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\file.txt")
+    #browser.find_element(By.ID, "my-file-selector").send_keys(os.getcwd()+ r"\mergedFiles\file.txt")
+    time.sleep(2)
+    #achains.send_keys("elo").send_keys(Keys.ENTER).perform()
+    #app = Application(backend='uia').connect(title=btitle, timeout=100)
+    #app = Application(backend='uia').connect(title="Open", timeout=100)
+    #filebox = app.btitle.child_window(title="File name:", auto_id="1148", control_type="Edit").wrapper_object()
+    #filebox = app.BrowserWindowName.child_window(title="File name:", auto_id="1148", control_type="Edit").wrapper_object()
+    #filebox.type_keys(r'C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\mergedfile.xlsx')
 def uploading_merged_file():
     browser.get("https://acme-test.uipath.com")
     achains = ActionChains(browser)
@@ -127,12 +168,14 @@ def uploading_merged_file():
     time.sleep(10)
     btitle = browser.title
     browser.find_element(By.XPATH, "//label[@for='my-file-selector']").click()
-
-    app = Application(backend='uia').connect(title=btitle, timeout=100)
+    time.sleep(2)
+    fileInput = browser.find_element(By.name, 'Open')
+    fileInput.send_keys("C:/path/to/file.jpg")
+    #app = Application(backend='uia').connect(title=btitle, timeout=100)
     #app = Application(backend='uia').connect(title="Open", timeout=100)
-    filebox = app.btitle.child_window(title="File name:", auto_id="1148", control_type="Edit").wrapper_object()
+    #filebox = app.btitle.child_window(title="File name:", auto_id="1148", control_type="Edit").wrapper_object()
     #filebox = app.BrowserWindowName.child_window(title="File name:", auto_id="1148", control_type="Edit").wrapper_object()
-    filebox.type_keys(r'C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\mergedfile.xlsx')
+    #filebox.type_keys(r'C:\Users\serowskh\PycharmProjects\RPABOTYearlyInovice\mergedFiles\mergedfile.xlsx')
 
 def send_mail():
     smtp_port = 587
@@ -144,14 +187,14 @@ def send_mail():
     pswd = f"{os.getenv('GOOGLE_APP_CREDENTIAL')}"
 
     message = MIMEMultipart("alternative")
-    message["Subject"] = "multipart test"
+    message["Subject"] = "RPABOT Run"
     #message["From"] = f"{os.getenv('GOOGLE_MAIL')}"
     #message["To"] = f"{os.getenv('GOOGLE_MAIL')}"
     # write the text/plain part
     text = f"""\
     Hi,
     The bot run was successful
-    Best Regards
+    Best Regards,
     RPA BOT
     """
 
@@ -162,7 +205,7 @@ def send_mail():
       <body>
         <p>Hi,<br>
            The bot run was successful</p>
-        <p>,Best Regards</p>
+        <p>Best Regards,</p>
         <p> RPA BOT </p>
       </body>
     </html>
@@ -184,14 +227,14 @@ def send_exception_mail(error):
     pswd = f"{os.getenv('GOOGLE_APP_CREDENTIAL')}"
 
     message = MIMEMultipart("alternative")
-    message["Subject"] = "multipart test"
+    message["Subject"] = "RPA BOT Run"
     # message["From"] = f"{os.getenv('GOOGLE_MAIL')}"
     # message["To"] = f"{os.getenv('GOOGLE_MAIL')}"
     # write the text/plain part
     text = f"""\
     Hi,
     The bot run had following error:
-    ,Best Regards
+    Best Regards,
     RPA BOT
     """
 
@@ -202,7 +245,7 @@ def send_exception_mail(error):
         <p>Hi,<br>
             The bot run had following error: </p><br>
             <p> {error} <p>
-        <p>,Best Regards</p>
+        <p>Best Regards,</p>
         <p> RPA BOT </p>
         </body>
     </html>
@@ -233,17 +276,22 @@ def send_exception_mail(error):
     logger.info("###################### SCRAPER EXECUTION ENDED ######################")
 
 def minimal_task():
-    try:
+    configure()
+    login_to_web_page()
+    uploading_merged_file_test()
+    """    try:
         configure()
         login_to_web_page()
         #download_monthly_report()
         #merge_excel_files()
         #uploading_merged_file()
+        uploading_merged_file_test()
         #clean_folders()
-        send_mail()
+        #send_mail()
     except Exception as error:
         clean_folders()
-        send_exception_mail(error)
+        send_exception_mail(error)"""
+
 
 if __name__ == "__main__":
     minimal_task()
