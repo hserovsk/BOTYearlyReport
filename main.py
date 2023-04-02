@@ -22,6 +22,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import autoit
+import requests
+from bs4 import BeautifulSoup
+from Scraper import Safe_Connect
 
 # Actual Date
 today = date.today()
@@ -63,13 +66,27 @@ def login_to_web_page():
     time.sleep(5)
     logger.info("Loggin in to ACME website... Success")
 
+def scrape_data_table():
+    response = Safe_Connect('https://acme-test.uipath.com/work-items')
+    print(response.status_code)
+    print('making soup...')
+    soup = BeautifulSoup(response.text, 'html.parser')
+    #print(soup)
+    working_items_table = soup.find('table')
+    rows = working_items_table.find_all('tr')
+    for row in rows:
+        print('### ROW ###')
+        print(row)
+
+
+
+
 def download_monthly_report():
     logger.info("Downloading monthly reports...")
     achains = ActionChains(browser)
     hover_element = browser.find_element(By.XPATH, "//button[normalize-space()='Reports']")
     achains.move_to_element(hover_element).perform()
     browser.find_element(By.XPATH, "//a[normalize-space()='Download Monthly Report']").click()
-    time.sleep(3)
     browser.find_element(By.XPATH, "//div[@class='control-group form-group']//input").send_keys("IT754893")
     #browser.find_element(By.XPATH, "//div[@class='dropdown']//a[@href='https://acme-test.uipath.com/reports/download']")
 
@@ -276,9 +293,19 @@ def send_exception_mail(error):
     logger.info("###################### SCRAPER EXECUTION ENDED ######################")
 
 def minimal_task():
-    configure()
-    login_to_web_page()
-    uploading_merged_file_test()
+    try:
+        configure()
+        login_to_web_page()
+        scrape_data_table()
+        #download_monthly_report()
+        #merge_excel_files()
+        #uploading_merged_file()
+        #uploading_merged_file_test()
+        #clean_folders()
+        #send_mail()
+    except Exception as error:
+        clean_folders()
+        send_exception_mail(error)
     """    try:
         configure()
         login_to_web_page()
